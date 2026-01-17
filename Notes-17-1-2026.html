@@ -3,112 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Source Detector - HSC Management</title>
+    <title>Permanent Source Detector - HSC Management</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600&display=swap');
-        body { font-family: 'Hind Siliguri', sans-serif; background: #f0f4f8; margin: 0; padding: 10px; }
-        .controls { text-align: center; margin: 20px 0; position: sticky; top: 10px; z-index: 1000; }
-        .btn { background: #1a73e8; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-        .container { max-width: 850px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 15px rgba(0,0,0,0.1); }
-        .header { text-align: center; border-bottom: 3px solid #1a73e8; margin-bottom: 20px; padding-bottom: 10px; }
-        .chapter-title { background: #1a73e8; color: white; padding: 10px 15px; margin-top: 30px; border-radius: 5px; font-size: 1.25em; border-left: 8px solid #0d47a1; }
+        body { font-family: 'Hind Siliguri', sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
+        .no-print { text-align: center; padding: 20px; position: sticky; top: 0; background: #f4f7f9; z-index: 1000; }
+        .btn { background: #1a73e8; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 350px; }
+        .container { max-width: 850px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 15px rgba(0,0,0,0.05); }
+        .header { text-align: center; border-bottom: 3px solid #1a73e8; margin-bottom: 25px; padding-bottom: 10px; }
+        .chapter-box { background: #1a73e8; color: white; padding: 12px; margin-top: 30px; border-radius: 6px; font-size: 1.2em; font-weight: bold; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        td { border: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: top; }
-        .q-text { color: #d32f2f; font-weight: bold; margin-bottom: 5px; }
-        .a-text { color: #1b5e20; line-height: 1.6; }
-        #status-bar { text-align: center; color: #1a73e8; font-weight: bold; margin-bottom: 15px; }
-        .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #1a73e8; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 10px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        td { border: 1px solid #eee; padding: 12px; text-align: left; vertical-align: top; }
+        .q { color: #d32f2f; font-weight: 600; margin-bottom: 5px; }
+        .a { color: #1b5e20; line-height: 1.6; }
+        #status-msg { text-align: center; padding: 20px; font-weight: bold; color: #1a73e8; }
     </style>
 </head>
 <body>
 
-<div class="controls">
-    <button class="btn" id="dl-btn" onclick="generatePDF()">📥 সম্পূর্ণ ৩০০+ প্রশ্ন PDF ডাউনলোড</button>
+<div class="no-print">
+    <button class="btn" id="dl-btn" onclick="generatePDF()">📥 ৩০০+ প্রশ্নের PDF ডাউনলোড</button>
 </div>
 
 <div class="container" id="pdf-area">
     <div class="header">
         <h1 style="margin:0;">ব্যবস্থাপনা ২য় পত্র</h1>
-        <p>সোর্স থেকে ডিটেক্ট করা ৩১০টি প্রশ্ন ও উত্তর</p>
+        <p>সরাসরি GitHub API থেকে ডিটেক্ট করা ৩১০টি প্রশ্ন</p>
     </div>
 
-    <div id="status-area">
-        <div id="status-bar">সোর্স ফাইল শনাক্ত করা হচ্ছে...</div>
-        <div class="loading-spinner" id="spinner"></div>
-    </div>
-    
-    <div id="data-output"></div>
+    <div id="status-msg">অপেক্ষা করুন, সরাসরি সোর্স থেকে ৩১০টি প্রশ্ন শনাক্ত করা হচ্ছে...</div>
+    <div id="display-area"></div>
 </div>
 
 <script>
-    const SOURCE_URL = "https://azazhossain.github.io/fcman2nd2.0/data.json";
-    
-    // একাধিক প্রক্সি ব্যবহার করে শক্তিশালী ডিটেকশন ইঞ্জিন
-    async function startDetection() {
-        const output = document.getElementById('data-output');
-        const status = document.getElementById('status-bar');
-        const spinner = document.getElementById('spinner');
+    // আপনার GitHub ইউজারনেম, রিপোজিটরি এবং ফাইলের পাথ অনুযায়ী API URL
+    const GITHUB_API_URL = "https://raw.githubusercontent.com/azazhossain/fcman2nd2.0/main/data.json";
 
-        // প্রক্সি লিস্ট (CORS বাইপাস করার জন্য)
-        const proxies = [
-            `https://api.allorigins.win/raw?url=${encodeURIComponent(SOURCE_URL)}`,
-            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(SOURCE_URL)}`
-        ];
+    async function detectDataPermanently() {
+        const display = document.getElementById('display-area');
+        const status = document.getElementById('status-msg');
 
-        let data = null;
+        try {
+            // সরাসরি GitHub Raw কন্টেন্ট থেকে ডাটা রিড করা
+            const response = await fetch(GITHUB_API_URL);
+            
+            if (!response.ok) throw new Error("API Connection Failed");
 
-        for (let url of proxies) {
-            try {
-                status.innerText = "সোর্স থেকে ডাটা রিড করা হচ্ছে...";
-                const response = await fetch(url);
-                if (response.ok) {
-                    data = await response.json();
-                    break; // ডাটা পেয়ে গেলে লুপ বন্ধ হবে
-                }
-            } catch (err) {
-                console.warn("Proxy failed, trying next...");
+            const data = await response.json();
+            
+            // ডাটা গ্রুপিং এবং ডিটেকশন লজিক
+            const grouped = data.reduce((acc, item) => {
+                const chapter = item.category || "অন্যান্য";
+                if (!acc[chapter]) acc[chapter] = [];
+                acc[chapter].push(item);
+                return acc;
+            }, {});
+
+            let html = "";
+            for (let title in grouped) {
+                html += `<div class="chapter-box">${title}</div>`;
+                html += `<table><tbody>`;
+                grouped[title].forEach((item, index) => {
+                    html += `<tr>
+                        <td style="width:40px; text-align:center; font-weight:bold;">${index + 1}</td>
+                        <td>
+                            <div class="q">প্রশ্ন: ${item.question}</div>
+                            <div class="a">উত্তর: ${item.answer}</div>
+                        </td>
+                    </tr>`;
+                });
+                html += `</tbody></table>`;
             }
-        }
 
-        if (data) {
-            status.innerText = `সফল! ${data.length}টি প্রশ্ন শনাক্ত করা হয়েছে।`;
-            spinner.style.display = 'none';
-            render(data);
-        } else {
-            status.innerHTML = "<span style='color:red;'>ডিটেকশন ব্যর্থ! সোর্স সাইটটি রেসপন্স করছে না। ভিপিএন (VPN) ব্যবহার করে পুনরায় চেষ্টা করুন।</span>";
-            spinner.style.display = 'none';
+            display.innerHTML = html;
+            status.style.display = 'none'; // সফল হলে স্ট্যাটাস হাইড হবে
+        } catch (error) {
+            status.innerHTML = `<div style="color:red; border:1px solid red; padding:10px;">
+                সরাসরি ডিটেকশন ব্যর্থ! <br> 
+                কারণ: সোর্স সাইটের নিরাপত্তা ব্যবস্থা। <br>
+                সমাধান: আপনার ফোনের ব্রাউজার ক্যাশ (Cache) ক্লিয়ার করে অথবা Google Chrome ব্রাউজারে Incognito মোডে ট্রাই করুন।
+            </div>`;
         }
-    }
-
-    function render(data) {
-        const output = document.getElementById('data-output');
-        
-        // অটোমেটিক সোর্স ডিটেকশন এবং গ্রুপিং লজিক
-        const grouped = data.reduce((acc, item) => {
-            const cat = item.category || "সাধারণ অধ্যায়";
-            if (!acc[cat]) acc[cat] = [];
-            acc[cat].push(item);
-            return acc;
-        }, {});
-
-        let html = "";
-        for (let chapter in grouped) {
-            html += `<div class="chapter-title">${chapter}</div>`;
-            html += `<table><tbody>`;
-            grouped[chapter].forEach((item, index) => {
-                html += `<tr>
-                    <td style="width:45px; text-align:center; font-weight:bold;">${index + 1}</td>
-                    <td>
-                        <div class="q-text">প্রশ্ন: ${item.question}</div>
-                        <div class="a-text">উত্তর: ${item.answer}</div>
-                    </td>
-                </tr>`;
-            });
-            html += `</tbody></table>`;
-        }
-        output.innerHTML = html;
     }
 
     function generatePDF() {
@@ -119,21 +95,21 @@
 
         const opt = {
             margin: 10,
-            filename: 'HSC_Management_310_Questions.pdf',
+            filename: 'Management_Full_310_Questions.pdf',
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
+            html2canvas: { scale: 2 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         };
 
         html2pdf().set(opt).from(element).save().then(() => {
-            btn.innerText = "📥 সম্পূর্ণ ৩০০+ প্রশ্ন PDF ডাউনলোড";
+            btn.innerText = "📥 ৩০০+ প্রশ্নের PDF ডাউনলোড";
             btn.disabled = false;
         });
     }
 
-    // পেজ লোড হওয়ার সাথে সাথে ডিটেকশন শুরু হবে
-    window.onload = startDetection;
+    // উইন্ডো লোড হওয়ার সাথে সাথে ডিটেকশন শুরু
+    window.onload = detectDataPermanently;
 </script>
 
 </body>
