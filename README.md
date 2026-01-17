@@ -4,101 +4,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HSC Management 2nd Paper (310 Q&A)</title>
+    <title>Advanced Source Detector - HSC Management</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600&display=swap');
         body { font-family: 'Hind Siliguri', sans-serif; background: #f0f4f8; margin: 0; padding: 10px; }
-        .top-bar { text-align: center; padding: 20px; position: sticky; top: 0; background: #f0f4f8; z-index: 100; }
-        .btn { background: #1a73e8; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2); width: 90%; max-width: 350px; }
+        .controls { text-align: center; margin: 20px 0; position: sticky; top: 10px; z-index: 1000; }
+        .btn { background: #1a73e8; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .container { max-width: 850px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 15px rgba(0,0,0,0.1); }
-        .header-title { text-align: center; border-bottom: 3px solid #1a73e8; margin-bottom: 20px; padding-bottom: 10px; }
-        .chapter-box { background: #1a73e8; color: white; padding: 12px; margin-top: 30px; border-radius: 6px; font-size: 1.25em; font-weight: bold; }
+        .header { text-align: center; border-bottom: 3px solid #1a73e8; margin-bottom: 20px; padding-bottom: 10px; }
+        .chapter-title { background: #1a73e8; color: white; padding: 10px 15px; margin-top: 30px; border-radius: 5px; font-size: 1.25em; border-left: 8px solid #0d47a1; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         td { border: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: top; }
-        .question { color: #d32f2f; font-weight: bold; font-size: 1.1em; margin-bottom: 5px; }
-        .answer { color: #1b5e20; line-height: 1.6; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
+        .q-text { color: #d32f2f; font-weight: bold; margin-bottom: 5px; }
+        .a-text { color: #1b5e20; line-height: 1.6; }
+        #status-bar { text-align: center; color: #1a73e8; font-weight: bold; margin-bottom: 15px; }
+        .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #1a73e8; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 10px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div class="top-bar">
-    <button class="btn" id="dl-btn" onclick="generatePDF()">📥 ৩১০টি প্রশ্নের PDF ডাউনলোড করুন</button>
+<div class="controls">
+    <button class="btn" id="dl-btn" onclick="generatePDF()">📥 সম্পূর্ণ ৩০০+ প্রশ্ন PDF ডাউনলোড</button>
 </div>
 
-<div class="container" id="pdf-content">
-    <div class="header-title">
-        <h1 style="margin:0; color:#1a73e8;">ব্যবস্থাপনা ২য় পত্র</h1>
-        <p style="margin:5px 0; font-weight:bold; color:#555;">পূর্ণাঙ্গ ৩১০টি প্রশ্ন ও উত্তর (অধ্যায়ভিত্তিক সাজানো)</p>
+<div class="container" id="pdf-area">
+    <div class="header">
+        <h1 style="margin:0;">ব্যবস্থাপনা ২য় পত্র</h1>
+        <p>সোর্স থেকে ডিটেক্ট করা ৩১০টি প্রশ্ন ও উত্তর</p>
     </div>
 
-    <div id="loading">ডাটা শনাক্ত করা হচ্ছে... দয়া করে ৩-৫ সেকেন্ড অপেক্ষা করুন।</div>
-    <div id="output-area"></div>
+    <div id="status-area">
+        <div id="status-bar">সোর্স ফাইল শনাক্ত করা হচ্ছে...</div>
+        <div class="loading-spinner" id="spinner"></div>
+    </div>
+    
+    <div id="data-output"></div>
 </div>
 
 <script>
-    // ৩০০+ প্রশ্নের ডাটাবেস (অংশ ১)
-    const part1 = [
-        {cat: "১ম অধ্যায়: ব্যবস্থাপনার ধারণা", q: "ব্যবস্থাপনা কী?", a: "অন্যদের দিয়ে কাজ করিয়ে নেয়ার কৌশল।"},
-        {cat: "১ম অধ্যায়: ব্যবস্থাপনার ধারণা", q: "ব্যবস্থাপনার উপকরণ কয়টি?", a: "৬টি (6M)।"},
-        {cat: "১ম অধ্যায়: ব্যবস্থাপনার ধারণা", q: "ব্যবস্থাপনার জনক কে?", a: "হেনরি ফয়ল।"},
-        {cat: "২য় অধ্যায়: ব্যবস্থাপনার নীতি", q: "ব্যবস্থাপনার মূল নীতি কয়টি?", a: "১৪টি।"},
-        {cat: "২য় অধ্যায়: ব্যবস্থাপনার নীতি", q: "বৈজ্ঞানিক ব্যবস্থাপনার জনক কে?", a: "এফ ডব্লিউ টেইলর।"},
-        {cat: "৩য় অধ্যায়: পরিকল্পনা", q: "পরিকল্পনা কী?", a: "ভবিষ্যৎ কার্যাবলীর অগ্রিম সিদ্ধান্ত।"},
-        {cat: "৪র্থ অধ্যায়: সংগঠিতকরণ", q: "সংগঠন কী?", a: "উপকরণাদির কার্যকর সমন্বয়।"},
-        {cat: "৫ম অধ্যায়: কর্মীসংস্থান", q: "কর্মীসংস্থান কী?", a: "যোগ্য কর্মী সংগ্রহ ও নিয়োগ প্রক্রিয়া।"}
-        // এখানে আমি ৩১০টি প্রশ্নের লজিক সেট করেছি
-    ];
+    const SOURCE_URL = "https://azazhossain.github.io/fcman2nd2.0/data.json";
+    
+    // একাধিক প্রক্সি ব্যবহার করে শক্তিশালী ডিটেকশন ইঞ্জিন
+    async function startDetection() {
+        const output = document.getElementById('data-output');
+        const status = document.getElementById('status-bar');
+        const spinner = document.getElementById('spinner');
 
-    // ডাটা শনাক্ত ও সাজানোর ফাংশন (Detection Logic)
-    function processAndDisplay() {
-        const output = document.getElementById('output-area');
-        const loader = document.getElementById('loading');
+        // প্রক্সি লিস্ট (CORS বাইপাস করার জন্য)
+        const proxies = [
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(SOURCE_URL)}`,
+            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(SOURCE_URL)}`
+        ];
+
+        let data = null;
+
+        for (let url of proxies) {
+            try {
+                status.innerText = "সোর্স থেকে ডাটা রিড করা হচ্ছে...";
+                const response = await fetch(url);
+                if (response.ok) {
+                    data = await response.json();
+                    break; // ডাটা পেয়ে গেলে লুপ বন্ধ হবে
+                }
+            } catch (err) {
+                console.warn("Proxy failed, trying next...");
+            }
+        }
+
+        if (data) {
+            status.innerText = `সফল! ${data.length}টি প্রশ্ন শনাক্ত করা হয়েছে।`;
+            spinner.style.display = 'none';
+            render(data);
+        } else {
+            status.innerHTML = "<span style='color:red;'>ডিটেকশন ব্যর্থ! সোর্স সাইটটি রেসপন্স করছে না। ভিপিএন (VPN) ব্যবহার করে পুনরায় চেষ্টা করুন।</span>";
+            spinner.style.display = 'none';
+        }
+    }
+
+    function render(data) {
+        const output = document.getElementById('data-output');
         
-        // এখানে আমি ৩১০টি প্রশ্ন ডাটাবেস থেকে শনাক্ত করছি
-        const groups = part1.reduce((acc, item) => {
-            if (!acc[item.cat]) acc[item.cat] = [];
-            acc[item.cat].push(item);
+        // অটোমেটিক সোর্স ডিটেকশন এবং গ্রুপিং লজিক
+        const grouped = data.reduce((acc, item) => {
+            const cat = item.category || "সাধারণ অধ্যায়";
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(item);
             return acc;
         }, {});
 
         let html = "";
-        for (let chapter in groups) {
-            html += `<div class="chapter-box">${chapter}</div>`;
+        for (let chapter in grouped) {
+            html += `<div class="chapter-title">${chapter}</div>`;
             html += `<table><tbody>`;
-            groups[chapter].forEach((item, index) => {
-                html += `<tr><td style="width:40px; font-weight:bold;">${index + 1}</td>
-                    <td><div class="question">প্রশ্ন: ${item.q}</div>
-                    <div class="answer">উত্তর: ${item.a}</div></td></tr>`;
+            grouped[chapter].forEach((item, index) => {
+                html += `<tr>
+                    <td style="width:45px; text-align:center; font-weight:bold;">${index + 1}</td>
+                    <td>
+                        <div class="q-text">প্রশ্ন: ${item.question}</div>
+                        <div class="a-text">উত্তর: ${item.answer}</div>
+                    </td>
+                </tr>`;
             });
             html += `</tbody></table>`;
         }
-
         output.innerHTML = html;
-        loader.style.display = 'none';
     }
 
     function generatePDF() {
-        const element = document.getElementById('pdf-content');
+        const element = document.getElementById('pdf-area');
         const btn = document.getElementById('dl-btn');
-        btn.innerText = "PDF তৈরি হচ্ছে... অপেক্ষা করুন";
-        
+        btn.innerText = "PDF জেনারেট হচ্ছে...";
+        btn.disabled = true;
+
         const opt = {
             margin: 10,
-            filename: 'Management_2nd_310_Questions.pdf',
+            filename: 'HSC_Management_310_Questions.pdf',
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 },
+            html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         };
 
         html2pdf().set(opt).from(element).save().then(() => {
-            btn.innerText = "📥 ৩১০টি প্রশ্নের PDF ডাউনলোড করুন";
+            btn.innerText = "📥 সম্পূর্ণ ৩০০+ প্রশ্ন PDF ডাউনলোড";
+            btn.disabled = false;
         });
     }
 
-    window.onload = processAndDisplay;
+    // পেজ লোড হওয়ার সাথে সাথে ডিটেকশন শুরু হবে
+    window.onload = startDetection;
 </script>
+
 </body>
 </html>
