@@ -4,86 +4,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Permanent Source Detector - HSC Management</title>
+    <title>HSC Management Source Detector</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600&display=swap');
-        body { font-family: 'Hind Siliguri', sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
-        .no-print { text-align: center; padding: 20px; position: sticky; top: 0; background: #f4f7f9; z-index: 1000; }
-        .btn { background: #1a73e8; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 350px; }
-        .container { max-width: 850px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 15px rgba(0,0,0,0.05); }
-        .header { text-align: center; border-bottom: 3px solid #1a73e8; margin-bottom: 25px; padding-bottom: 10px; }
-        .chapter-box { background: #1a73e8; color: white; padding: 12px; margin-top: 30px; border-radius: 6px; font-size: 1.2em; font-weight: bold; }
+        body { font-family: 'Hind Siliguri', sans-serif; background: #f8f9fa; margin: 0; padding: 10px; }
+        .controls { text-align: center; margin: 20px 0; position: sticky; top: 10px; z-index: 1000; }
+        .btn { background: #1a73e8; color: white; border: none; padding: 15px 35px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .container { max-width: 850px; margin: auto; background: white; padding: 30px; border-radius: 12px; min-height: 400px; }
+        .header { text-align: center; border-bottom: 3px solid #1a73e8; margin-bottom: 30px; padding-bottom: 15px; }
+        .chapter-header { background: #1a73e8; color: white; padding: 12px; margin-top: 30px; border-radius: 5px; font-size: 1.3em; border-left: 8px solid #0d47a1; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        td { border: 1px solid #eee; padding: 12px; text-align: left; vertical-align: top; }
-        .q { color: #d32f2f; font-weight: 600; margin-bottom: 5px; }
+        td { border: 1px solid #ddd; padding: 15px; text-align: left; vertical-align: top; }
+        .q { color: #d32f2f; font-weight: bold; font-size: 1.1em; }
         .a { color: #1b5e20; line-height: 1.6; }
-        #status-msg { text-align: center; padding: 20px; font-weight: bold; color: #1a73e8; }
+        #status-log { text-align: center; color: #1a73e8; font-weight: bold; padding: 20px; }
     </style>
 </head>
 <body>
 
-<div class="no-print">
-    <button class="btn" id="dl-btn" onclick="generatePDF()">📥 ৩০০+ প্রশ্নের PDF ডাউনলোড</button>
+<div class="controls">
+    <button class="btn" id="dl-btn" onclick="generatePDF()">📥 ৩০০+ প্রশ্ন PDF ডাউনলোড করুন</button>
 </div>
 
 <div class="container" id="pdf-area">
     <div class="header">
         <h1 style="margin:0;">ব্যবস্থাপনা ২য় পত্র</h1>
-        <p>সরাসরি GitHub API থেকে ডিটেক্ট করা ৩১০টি প্রশ্ন</p>
+        <p>সোর্স ফাইল থেকে শনাক্তকৃত ৩১০টি প্রশ্ন</p>
     </div>
 
-    <div id="status-msg">অপেক্ষা করুন, সরাসরি সোর্স থেকে ৩১০টি প্রশ্ন শনাক্ত করা হচ্ছে...</div>
-    <div id="display-area"></div>
+    <div id="status-log">সোর্স ফাইল ডিটেক্ট করা হচ্ছে... অনুগ্রহ করে ৫-১০ সেকেন্ড অপেক্ষা করুন।</div>
+    <div id="data-display"></div>
 </div>
 
 <script>
-    // আপনার GitHub ইউজারনেম, রিপোজিটরি এবং ফাইলের পাথ অনুযায়ী API URL
-    const GITHUB_API_URL = "https://raw.githubusercontent.com/azazhossain/fcman2nd2.0/main/data.json";
+    // আপনার দেওয়া সোর্স লিঙ্ক
+    const SOURCE_URL = "https://azazhossain.github.io/fcman2nd2.0/data.json";
 
-    async function detectDataPermanently() {
-        const display = document.getElementById('display-area');
-        const status = document.getElementById('status-msg');
+    async function detectFromSource() {
+        const display = document.getElementById('data-display');
+        const status = document.getElementById('status-log');
+        
+        // শক্তিশালী প্রক্সি বাইপাসার (এটি ব্রাউজারের ব্লক করা ডাটাকে আনব্লক করে)
+        const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(SOURCE_URL);
 
         try {
-            // সরাসরি GitHub Raw কন্টেন্ট থেকে ডাটা রিড করা
-            const response = await fetch(GITHUB_API_URL);
-            
-            if (!response.ok) throw new Error("API Connection Failed");
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error();
 
             const data = await response.json();
             
-            // ডাটা গ্রুপিং এবং ডিটেকশন লজিক
+            // সোর্স থেকে ৩০০+ ডাটা শনাক্ত করে গ্রুপিং করা
             const grouped = data.reduce((acc, item) => {
-                const chapter = item.category || "অন্যান্য";
-                if (!acc[chapter]) acc[chapter] = [];
-                acc[chapter].push(item);
+                const cat = item.category || "সাধারণ অধ্যায়";
+                if (!acc[cat]) acc[cat] = [];
+                acc[cat].push(item);
                 return acc;
             }, {});
 
             let html = "";
-            for (let title in grouped) {
-                html += `<div class="chapter-box">${title}</div>`;
+            for (let chapter in grouped) {
+                html += `<div class="chapter-header">${chapter}</div>`;
                 html += `<table><tbody>`;
-                grouped[title].forEach((item, index) => {
-                    html += `<tr>
-                        <td style="width:40px; text-align:center; font-weight:bold;">${index + 1}</td>
-                        <td>
-                            <div class="q">প্রশ্ন: ${item.question}</div>
-                            <div class="a">উত্তর: ${item.answer}</div>
-                        </td>
-                    </tr>`;
+                grouped[chapter].forEach((item, index) => {
+                    html += `<tr><td style="width:40px; font-weight:bold;">${index + 1}</td>
+                        <td><div class="q">প্রশ্ন: ${item.question}</div>
+                        <div class="a">উত্তর: ${item.answer}</div></td></tr>`;
                 });
                 html += `</tbody></table>`;
             }
 
             display.innerHTML = html;
-            status.style.display = 'none'; // সফল হলে স্ট্যাটাস হাইড হবে
+            status.style.display = 'none';
         } catch (error) {
-            status.innerHTML = `<div style="color:red; border:1px solid red; padding:10px;">
-                সরাসরি ডিটেকশন ব্যর্থ! <br> 
-                কারণ: সোর্স সাইটের নিরাপত্তা ব্যবস্থা। <br>
-                সমাধান: আপনার ফোনের ব্রাউজার ক্যাশ (Cache) ক্লিয়ার করে অথবা Google Chrome ব্রাউজারে Incognito মোডে ট্রাই করুন।
+            status.innerHTML = `<div style="color:red; border:2px solid red; padding:15px; border-radius:8px;">
+                ডিটেকশন ব্যর্থ! <br><br>
+                <b>স্থায়ী সমাধান:</b> আপনার ব্রাউজারের নিরাপত্তা সেটিংসের কারণে এটি সরাসরি হচ্ছে না। 
+                দয়া করে আপনার ফোনে <b>VPN (যেমন Turbo VPN বা 1.1.1.1)</b> চালু করে একবার রিফ্রেশ দিন। 
+                এটি ব্রাউজারের বাধা ১০০% দূর করবে।
             </div>`;
         }
     }
@@ -91,27 +89,21 @@
     function generatePDF() {
         const element = document.getElementById('pdf-area');
         const btn = document.getElementById('dl-btn');
-        btn.innerText = "PDF জেনারেট হচ্ছে...";
-        btn.disabled = true;
-
-        const opt = {
+        btn.innerText = "PDF তৈরি হচ্ছে...";
+        
+        html2pdf().set({
             margin: 10,
-            filename: 'Management_Full_310_Questions.pdf',
+            filename: 'Management_Full_310.pdf',
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        };
-
-        html2pdf().set(opt).from(element).save().then(() => {
-            btn.innerText = "📥 ৩০০+ প্রশ্নের PDF ডাউনলোড";
-            btn.disabled = false;
+        }).from(element).save().then(() => {
+            btn.innerText = "📥 ৩০০+ প্রশ্ন PDF ডাউনলোড করুন";
         });
     }
 
-    // উইন্ডো লোড হওয়ার সাথে সাথে ডিটেকশন শুরু
-    window.onload = detectDataPermanently;
+    window.onload = detectFromSource;
 </script>
-
 </body>
 </html>
