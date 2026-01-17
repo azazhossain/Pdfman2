@@ -4,20 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HSC Management 2nd Paper Live PDF</title>
+    <title>HSC Management 2nd Paper PDF Tool</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600&display=swap');
-        body { font-family: 'Hind Siliguri', sans-serif; background: #f0f2f5; padding: 15px; margin: 0; }
+        body { font-family: 'Hind Siliguri', sans-serif; background: #f8f9fa; padding: 15px; margin: 0; }
         .controls { text-align: center; margin: 20px 0; position: sticky; top: 10px; z-index: 1000; }
-        .btn { background: #1a73e8; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        .container { max-width: 850px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 15px rgba(0,0,0,0.1); }
-        .chapter-header { background: #1a73e8; color: white; padding: 10px 15px; margin-top: 30px; border-radius: 5px; font-size: 1.2em; }
+        .btn { background: #1a73e8; color: white; border: none; padding: 12px 25px; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .chapter-header { background: #1a73e8; color: white; padding: 10px; margin-top: 25px; border-radius: 4px; font-size: 1.1em; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        .q { color: #d32f2f; font-weight: bold; margin-bottom: 5px; }
+        th, td { border: 1px solid #dee2e6; padding: 10px; text-align: left; }
+        .q { color: #d32f2f; font-weight: 600; margin-bottom: 4px; }
         .a { color: #2e7d32; }
-        #loader { text-align: center; padding: 50px; font-size: 1.2em; color: #1a73e8; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -27,31 +26,19 @@
 </div>
 
 <div class="container" id="pdf-area">
-    <div style="text-align:center; border-bottom:3px solid #1a73e8; margin-bottom:20px; padding-bottom:10px;">
-        <h1 style="margin:0;">ব্যবস্থাপনা ২য় পত্র</h1>
-        <p style="margin:5px 0; color:#666;">লাইভ ওয়েবসাইট থেকে সংগৃহীত ৩১০টি প্রশ্ন ও উত্তর</p>
+    <div style="text-align:center; border-bottom:2px solid #1a73e8; margin-bottom:20px; padding-bottom:10px;">
+        <h2 style="margin:0;">ব্যবস্থাপনা ২য় পত্র: সম্পূর্ণ প্রশ্ন উত্তর</h2>
     </div>
-
-    <div id="loader">ডেটা লোড হচ্ছে... দয়া করে অপেক্ষা করুন।</div>
-    <div id="data-output"></div>
+    <div id="data-output">ডেটা লোড হচ্ছে...</div>
 </div>
 
 <script>
-    const targetUrl = 'https://azazhossain.github.io/fcman2nd2.0/data.json';
-    // আরও শক্তিশালী প্রক্সি ব্যবহার করা হয়েছে
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-
-    async function fetchAllData() {
+    async function loadLocalData() {
         const output = document.getElementById('data-output');
-        const loader = document.getElementById('loader');
-        
         try {
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error("Failed to fetch");
-            
-            const result = await response.json();
-            // AllOrigins এর ডেটা 'contents' প্রপার্টির ভেতর থাকে
-            const data = JSON.parse(result.contents);
+            // আপনার নিজের রিপোজিটরি থেকে ডাটা নিচ্ছে
+            const response = await fetch('data.json'); 
+            const data = await response.json();
 
             const grouped = data.reduce((acc, item) => {
                 const cat = item.category || "সাধারণ অধ্যায়";
@@ -63,52 +50,31 @@
             let html = "";
             for (let chapter in grouped) {
                 html += `<div class="chapter-header">${chapter}</div>`;
-                html += `<table><thead><tr style="background:#f8f9fa;"><th>নং</th><th>প্রশ্ন ও উত্তর</th></tr></thead><tbody>`;
-                
+                html += `<table><thead><tr style="background:#f1f3f4;"><th>নং</th><th>প্রশ্ন ও উত্তর</th></tr></thead><tbody>`;
                 grouped[chapter].forEach((item, index) => {
-                    html += `<tr>
-                        <td style="width:10%; text-align:center;">${index + 1}</td>
-                        <td>
-                            <div class="q">প্রশ্ন: ${item.question}</div>
-                            <div class="a">উত্তর: ${item.answer}</div>
-                        </td>
-                    </tr>`;
+                    html += `<tr><td style="width:10%">${index + 1}</td><td><div class="q">প্রশ্ন: ${item.question}</div><div class="a">উত্তর: ${item.answer}</div></td></tr>`;
                 });
                 html += `</tbody></table>`;
             }
-
             output.innerHTML = html;
-            loader.style.display = 'none';
-
-        } catch (error) {
-            console.error(error);
-            loader.innerHTML = "ত্রুটি: ডেটা লোড করা যায়নি। পেজটি একবার রিফ্রেশ করুন।";
+        } catch (e) {
+            output.innerHTML = "ত্রুটি: data.json ফাইলটি পাওয়া যায়নি। নিশ্চিত করুন যে আপনি index.html এর পাশে data.json ফাইলটি আপলোড করেছেন।";
         }
     }
 
     function generatePDF() {
         const element = document.getElementById('pdf-area');
         const btn = document.getElementById('dl-btn');
-        btn.innerText = "প্রসেসিং হচ্ছে...";
-        btn.disabled = true;
-
-        const opt = {
+        btn.innerText = "অপেক্ষা করুন...";
+        html2pdf().set({
             margin: 10,
-            filename: 'HSC_Management_Update.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        };
-
-        html2pdf().set(opt).from(element).save().then(() => {
-            btn.innerText = "PDF ডাউনলোড করুন";
-            btn.disabled = false;
-        });
+            filename: 'Management_2nd.pdf',
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).from(element).save().then(() => { btn.innerText = "PDF ডাউনলোড করুন"; });
     }
 
-    window.onload = fetchAllData;
+    window.onload = loadLocalData;
 </script>
-
 </body>
 </html>
