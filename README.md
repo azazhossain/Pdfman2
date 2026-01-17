@@ -1,1 +1,102 @@
 # Pdfman2
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <title>HSC Management 2nd Paper Q&A</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600&display=swap');
+        body { font-family: 'Hind Siliguri', sans-serif; background: #f0f4f8; padding: 15px; }
+        .btn-box { text-align: center; margin: 20px 0; position: sticky; top: 10px; z-index: 100; }
+        .btn { background: #1a73e8; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .container { max-width: 850px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .chapter-header { background: #1a73e8; color: white; padding: 12px; margin-top: 25px; border-radius: 5px; font-size: 1.2em; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        .q { color: #d32f2f; font-weight: bold; }
+        .a { color: #2e7d32; }
+        #loader { text-align: center; font-size: 1.2em; color: #1a73e8; padding: 50px; }
+    </style>
+</head>
+<body>
+
+<div class="btn-box">
+    <button class="btn" id="dl-btn" onclick="generatePDF()">PDF ডাউনলোড করুন</button>
+</div>
+
+<div class="container" id="pdf-area">
+    <h1 style="text-align:center; color:#1a73e8; border-bottom:2px solid #1a73e8; padding-bottom:10px;">ব্যবস্থাপনা ২য় পত্র (৩১০টি প্রশ্ন)</h1>
+    <div id="loader">প্রশ্নগুলো লোড হচ্ছে... দয়া করে অপেক্ষা করুন।</div>
+    <div id="data-output"></div>
+</div>
+
+<script>
+    // বিকল্প প্রক্সি ব্যবহার করে সরাসরি ডাটা লোড
+    async function fetchAllData() {
+        const output = document.getElementById('data-output');
+        const loader = document.getElementById('loader');
+        
+        try {
+            // এই লিঙ্কটি সরাসরি ওই সাইটের data.json ফাইলটিকে কল করবে
+            const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://azazhossain.github.io/fcman2nd2.0/data.json'));
+            const data = await response.json();
+
+            // অধ্যায় অনুযায়ী সাজানো
+            const grouped = data.reduce((acc, item) => {
+                const cat = item.category || "অন্যান্য";
+                if (!acc[cat]) acc[cat] = [];
+                acc[cat].push(item);
+                return acc;
+            }, {});
+
+            let html = "";
+            for (let chapter in grouped) {
+                html += `<div class="chapter-header">${chapter}</div>`;
+                html += `<table><thead><tr><th style="width:10%">নং</th><th>প্রশ্ন ও উত্তর</th></tr></thead><tbody>`;
+                
+                grouped[chapter].forEach((item, index) => {
+                    html += `<tr>
+                        <td>${index + 1}</td>
+                        <td>
+                            <div class="q">প্রশ্ন: ${item.question}</div>
+                            <div class="a">উত্তর: ${item.answer}</div>
+                        </td>
+                    </tr>`;
+                });
+                html += `</tbody></table>`;
+            }
+
+            output.innerHTML = html;
+            loader.style.display = 'none';
+
+        } catch (error) {
+            loader.innerHTML = "ত্রুটি: ডেটা লোড করা যায়নি। ইন্টারনেটে সমস্যা হতে পারে।";
+        }
+    }
+
+    function generatePDF() {
+        const element = document.getElementById('pdf-area');
+        const btn = document.getElementById('dl-btn');
+        btn.innerText = "PDF তৈরি হচ্ছে... ১-২ মিনিট সময় লাগতে পারে";
+        btn.style.background = "#666";
+
+        const opt = {
+            margin: 10,
+            filename: 'HSC_Management_Full.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 1.5 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            btn.innerText = "PDF ডাউনলোড করুন";
+            btn.style.background = "#1a73e8";
+        });
+    }
+
+    window.onload = fetchAllData;
+</script>
+
+</body>
+</html>
